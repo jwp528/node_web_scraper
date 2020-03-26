@@ -14,14 +14,50 @@ const scrape = post => {
             const html = await res.text();
             const $ = cheerio.load(html);
 
-            // meta tag scraper closure function
+            // returns the site name from proper meta tags, or the title
+            const getSiteName = () => {
+                return $('meta[property="og:site_name"]').attr('content') || $('title').first().text() || null;
+            }
+
+            const getFavicon = () => {
+                return $('link[rel="shortcut icon"]').attr('href') || $('link[rel="icon"]').attr('href') || null;
+            }
+
+            const getSiteImage = () => {
+                return $('meta[name="image"]').attr('Content') ||
+                    $('meta[property="og:image"]').attr('Content') ||
+                    $('meta[property="msapplication-TileImage"]').attr('Content') ||
+                    null;
+            }
+
+            const getSiteDescription = () => {
+                return $('meta[name="description"]').attr('Content') || null;
+            }
+
             const extractMetaTags = () => {
                 const tags = {}
 
                 $("meta").each((index, elm) => {
+
+                    // returns whether the tag used name, itemprop, property, etc
+                    const findTagType = () => {
+                        const validNames = ['name', 'property', 'itemprop', 'http-equiv'];
+                        let found = null;
+                        for (const name of validNames) {
+                            if ($(elm).attr(name)) {
+                                found = name;
+                                break;
+                            }
+                        }
+
+                        return found;
+                    }
                     let name = $(elm).attr('name') || $(elm).attr('property') || $(elm).attr('itemprop') || $(elm).attr('charset');
-                    let content = $(elm).attr('content') || null;
-                    tags[name] = content;
+                    const tagData = {
+                        type: findTagType(),
+                        content: $(elm).attr('content') || null
+                    }
+                    tags[name] = tagData;
                     return;
                 });
 
@@ -30,8 +66,10 @@ const scrape = post => {
 
             return {
                 link,
-                title: $('meta[property="og:site_name"]').attr('content') || $('title').first().text() || null,
-                favicon: $('link[rel="shortcut icon"]').attr('href') || $('link[rel="icon"]').attr('href') || null,
+                title: getSiteName(),
+                favicon: getFavicon(),
+                image: getSiteImage(),
+                description: getSiteDescription(),
                 meta: extractMetaTags()
             }
         });
@@ -50,7 +88,6 @@ exports.scraper = functions.https.onRequest((request, response) => {
         try {
             const body = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
             const data = await scrape(body.text);
-
             response.send({ data });
         } catch (err) {
             console.error(err);
