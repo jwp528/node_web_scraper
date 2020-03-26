@@ -30,7 +30,7 @@ const scrape = post => {
 
             return {
                 link,
-                title: $('title').first().text() || null,
+                title: $('meta[property="og:site_name"]').attr('content') || $('title').first().text() || null,
                 favicon: $('link[rel="shortcut icon"]').attr('href') || $('link[rel="icon"]').attr('href') || null,
                 meta: extractMetaTags()
             }
@@ -48,12 +48,13 @@ const scrape = post => {
 exports.scraper = functions.https.onRequest((request, response) => {
     cors(request, response, async () => {
         try {
-            const body = JSON.parse(request.body);
+            const body = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
             const data = await scrape(body.text);
 
-            response.send(data);
+            response.send({ data });
         } catch (err) {
-            response.send(err);
+            console.error(err);
+            response.send({ err });
         }
     });
 });
