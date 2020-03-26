@@ -24,19 +24,24 @@ const scrape = post => {
             }
 
             const getSiteImage = () => {
-                return $('meta[name="image"]').attr('Content') ||
-                    $('meta[property="og:image"]').attr('Content') ||
-                    $('meta[property="msapplication-TileImage"]').attr('Content') ||
-                    null;
+                let image = $('meta[itemprop="image"]').attr('content') ||
+                    $('meta[property="og:image"]').attr('content') ||
+                    $('meta[name="msapplication-TileImage"]').attr('content') ||
+                    'https://via.placeholder.com/300?text=No Image Provided';
+
+                if (!image.includes('//')) {
+                    image = `${link}/${image}`;
+                }
+
+                return image;
             }
 
             const getSiteDescription = () => {
-                return $('meta[name="description"]').attr('Content') || null;
+                return $('meta[itemprop="description"]').attr('content') || $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || null;
             }
 
             const extractMetaTags = () => {
                 const tags = {}
-
                 $("meta").each((index, elm) => {
 
                     // returns whether the tag used name, itemprop, property, etc
